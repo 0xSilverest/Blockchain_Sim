@@ -4,6 +4,7 @@ public class Message {
     String senderName;
     String message;
 
+
     public Message (String sender, String message) {
         senderName = sender;
         this.message = message;
@@ -16,6 +17,7 @@ public class Message {
     public String getSenderName() {
         return senderName;
     }
+
 
     @Override
     public String toString() {

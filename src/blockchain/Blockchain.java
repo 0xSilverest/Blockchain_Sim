@@ -1,6 +1,10 @@
 package blockchain;
 
 import java.io.*;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,13 +17,6 @@ class Block {
     private final long nonce;
     private final List<Message> data;
     private final int timeSpent;
-
-    /*public Block(int id, String prevHash) {
-        this.id = id;
-        timeStamp = new Date().getTime();
-        prevBlockHash = prevHash;
-        hash = hashGenerator();
-    }*/
 
     public Block(int minerId, int id, long timeStamp, String prevHash, String hash, long nonce, List<Message> data, int timeSpent) {
         this.minerId = minerId;
@@ -39,20 +36,6 @@ class Block {
     public int getTimeSpent() {
         return timeSpent;
     }
-
-    /*private String hashGenerator () {
-        long startGen = System.currentTimeMillis();
-        Random rand = new Random();
-        int length = (int) Math.pow(10, (int) Math.ceil(rand.nextInt(20) * 3 / 2));
-        String hash;
-        do {
-            nonce = rand.nextInt(length);
-            hash = StringUtil.applySha256(id + prevBlockHash + nonce);
-        } while (!validateHash(hash));
-        long endGen = System.currentTimeMillis();
-        timeSpent = (int) Math.ceil((endGen - startGen)/1000);
-        return hash;
-    }*/
 
     @Override
     public String toString() {
@@ -96,19 +79,6 @@ public class Blockchain {
         return new Blockchain(this.chain, this.lastId, this.validL);
     }
 
-    /*public void createNewBlock () {
-        Block b;
-        if (chain.size() == 0) {
-            b = new Block(lastId ++, "0");
-        } else {
-            b = new Block(lastId++, chain.getLast().getHash());
-        }
-
-        chain.add(b);
-        System.out.println(chain.getLast());
-        setDiff(b.getTimeSpent());
-    }*/
-
     public synchronized void pushBlock (Block b) {
         chain.add(b);
         System.out.println(b);
@@ -118,6 +88,8 @@ public class Blockchain {
 
 
     public Block getLastBlockData () {
+        if (chain.size() == 0)
+            return new Block(0, 0, 0, "0", "0", 0, List.of(new Message("0", "0")), 0);
         return chain.getLast();
     }
 
@@ -138,30 +110,27 @@ public class Blockchain {
         return chain.get(i);
     }
 
-    public Blockchain load(String fileName) {
-        try {
-            FileInputStream fis = new FileInputStream(fileName);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            Blockchain loadedChain = (Blockchain) ois.readObject();
-            ois.close();
-            fis.close();
-            return loadedChain;
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return null;
+    public Blockchain load(String fileName) throws IOException, ClassNotFoundException {
+        FileInputStream fis = new FileInputStream(fileName);
+        ObjectInputStream ois = new ObjectInputStream(fis);
+        Blockchain loadedChain = (Blockchain) ois.readObject();
+        ois.close();
+        fis.close();
+        return loadedChain;
+
     }
 
-    public void save(String fileName) {
-        try {
-            FileOutputStream fos = new FileOutputStream(fileName);
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(this);
-            oos.close();
-            fos.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void save(String fileName) throws IOException{
+        FileOutputStream fos = new FileOutputStream(fileName);
+        ObjectOutputStream oos = new ObjectOutputStream(fos);
+        oos.writeObject(this);
+        oos.close();
+        fos.flush();
+        fos.close();
+    }
+
+    public boolean validateMessage(List<byte[]> message, Client sender, String s) throws NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, InvalidKeyException, IOException {
+        return new VerifyMessage(message, sender.clientName + "PublicKey").getValidation();
     }
 
     public boolean validateHash(String hash) {

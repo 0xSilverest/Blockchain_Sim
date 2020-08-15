@@ -25,11 +25,8 @@ public class Miner implements Callable<Block> {
 
     private Block mine() {
         String prevBlockHash;
-        if(localChain.isEmpty()) {
-            prevBlockHash= "0";
-        } else {
-            prevBlockHash = localChain.getLastBlockData().getHash();
-        }
+
+        prevBlockHash = localChain.getLastBlockData().getHash();
         StringBuilder dataBuilder = new StringBuilder();
 
         if(!messageList.isEmpty()) {

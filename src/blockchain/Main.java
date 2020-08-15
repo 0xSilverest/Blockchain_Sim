@@ -1,17 +1,17 @@
 package blockchain;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class Main {
 
     private static final List<String> namesList = List.of("Tom", "Sara", "John", "Abel");
 
-    private static void minerSim (Blockchain blockchain) {
+    private static void minerSim (Blockchain blockchain) throws NoSuchAlgorithmException, IOException {
         ExecutorService exec =  Executors.newCachedThreadPool();
 
         List<Miner> minerList = new ArrayList<>();
@@ -28,7 +28,7 @@ public class Main {
 
         if(!blockchain.isEmpty()) {
             for (int i = 0; i < 4; i++) {
-                Client client = new Client(namesList.get(i), data);
+                Client client = new Client(namesList.get(i), data, blockchain);
                 clientList.add(client);
             }
 
@@ -48,12 +48,12 @@ public class Main {
             blockchain.pushBlock(block);
         }
 
-        minerList.forEach(miner -> miner.notifyMod());
+        minerList.forEach(Miner::notifyMod);
 
         clientList.forEach(Client::disconnect);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws  IOException, NoSuchAlgorithmException{
 
         Blockchain blockchain = new Blockchain();
 
