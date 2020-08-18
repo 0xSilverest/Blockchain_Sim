@@ -10,10 +10,10 @@ public class Miner implements Callable<Block> {
     private final Blockchain localChain;
     private final int minerId;
     private final Random rand = new Random();
-    private final List<Message> messageList;
+    private final List<String> messageList;
     private boolean modified = false;
 
-    public Miner (Blockchain chain, int minerId, List<Message> messageList) {
+    public Miner (Blockchain chain, int minerId, List<String> messageList) {
         localChain = chain.copy();
         this.minerId = minerId;
         this.messageList = messageList;

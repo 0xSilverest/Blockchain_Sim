@@ -15,22 +15,27 @@ class Block {
     private final String prevBlockHash;
     private final String hash;
     private final long nonce;
-    private final List<Message> data;
+    private List<String> data = List.of("No transactions");
     private final int timeSpent;
 
-    public Block(int minerId, int id, long timeStamp, String prevHash, String hash, long nonce, List<Message> data, int timeSpent) {
+    public Block(int minerId, int id, long timeStamp, String prevHash, String hash, long nonce, List<String> data, int timeSpent) {
         this.minerId = minerId;
         this.id = id;
         this.timeStamp = timeStamp;
         this.prevBlockHash = prevHash;
         this.nonce = nonce;
         this.hash = hash;
-        this.data = data;
+        if(!data.isEmpty())
+            this.data = data;
         this.timeSpent = timeSpent;
     }
 
     public String getHash() {
         return hash;
+    }
+
+    public int getMinerId() {
+        return minerId;
     }
 
     public int getTimeSpent() {
@@ -40,19 +45,19 @@ class Block {
     @Override
     public String toString() {
         StringBuilder messages = new StringBuilder();
-        if (data.isEmpty())
-            messages.append("no messages\n");
-        else {
-            data.forEach(x -> messages.append(x.toString()).append("\n"));
-        }
+        if(data == null) {
+            messages.append("No transactions");
+        } else
+            data.forEach(x -> {if(x != null) messages.append(x).append("\n");});
 
-        return "Block: \n" + "Created by miner # " + minerId + "\n" +
+        return "Block: \n" + "Created by miner" + minerId + "\n" +
+                "miner" + minerId + " gets 100 VC\n" +
                 "Id: " + id + "\n" +
                 "Timestamp: " + timeStamp + "\n" +
                 "Magic number: " + nonce + "\n" +
                 "Hash of the previous block: \n" + prevBlockHash + "\n" +
                 "Hash of the block: \n" + hash + "\n" +
-                "Block data:\n" + messages.toString() +
+                "Block data:\n" + messages +
                 "Block was generating for " + timeSpent + " seconds";
 
     }
@@ -89,12 +94,12 @@ public class Blockchain {
 
     public Block getLastBlockData () {
         if (chain.size() == 0)
-            return new Block(0, 0, 0, "0", "0", 0, List.of(new Message("0", "0")), 0);
+            return new Block(0, 0, 0, "0", "0", 0, List.of("0"), 0);
         return chain.getLast();
     }
 
     private void setDiff(int time) {
-        if(time <= 10) {
+        if(time < 20) {
             validL ++;
             System.out.println("N was increased to " + validL + "\n");
             return;
