@@ -57,7 +57,7 @@ public class Client extends Thread{
                             dataStream.add(clientMess);
                         }
                     } else {
-                        System.out.println("Your key is SHIT");
+                        System.out.println("Error: Key Unrecognized");
                     }
                 } catch (NoSuchAlgorithmException | SignatureException | InvalidKeySpecException | InvalidKeyException | IOException e) {
                     e.printStackTrace();

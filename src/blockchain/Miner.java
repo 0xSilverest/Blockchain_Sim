@@ -35,7 +35,7 @@ public class Miner implements Callable<Block> {
 
         long timeStamp = new Date().getTime();
         long startGen = System.currentTimeMillis();
-        int length = (int) Math.pow(10, (int) Math.ceil((double) rand.nextInt(8) * 3 / 2));
+        int length = (int) Math.pow(10, (int) Math.ceil((double) rand.nextInt(10) * 3 / 2));
         int id = localChain.getLastId();
 
         long nonce;

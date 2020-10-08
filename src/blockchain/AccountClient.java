@@ -15,11 +15,14 @@ public class AccountClient extends Thread{
     private final Random rand = new Random();
     private final List<String> dataStream;
     private boolean stop = false;
+    private final Blockchain localChain;
 
-    public AccountClient(Account acc, List<Account> accountList, List<String> dataStream) {
+    public AccountClient(Account acc, Blockchain localChain, List<Account> accountList, List<String> dataStream) throws IOException, NoSuchAlgorithmException {
         this.acc = acc;
+        this.localChain = localChain.copy();
         this.accountList = accountList;
         this.dataStream = dataStream;
+        generateClientKeys();
     }
 
     private void generateClientKeys () throws IOException, NoSuchAlgorithmException {
@@ -29,6 +32,10 @@ public class AccountClient extends Thread{
             clientKeys.writeToFile(acc.getAccountId() + "PublicKey", clientKeys.getPublicKey().getEncoded());
             clientKeys.writeToFile(acc.getAccountId() + "PrivateKey", clientKeys.getPrivateKey().getEncoded());
         }
+    }
+
+    public String getAccountId() {
+        return acc.getAccountId();
     }
 
     private String doTransaction (Account destination, long amount) {
@@ -44,20 +51,34 @@ public class AccountClient extends Thread{
         this.stop = true;
     }
 
+    public List<String> getDataStream() {
+        return dataStream;
+    }
+
     @Override
     public void run() {
         while (!stop && acc.getBalance() > 0) {
             int n = rand.nextInt(accountList.size());
             Account dest = accountList.get(n);
             int amount = rand.nextInt((int) acc.getBalance());
-            if(!dest.equals(acc) && amount != 0 && amount <= acc.getBalance()) {
-                synchronized (dataStream) {
-                    dataStream.add(doTransaction(dest, amount));
+            try {
+                if(!dest.equals(acc)
+                        && amount != 0
+                        && amount <= acc.getBalance()) {
+                    if (localChain.validateMessage(signTransaction(String.valueOf(amount)), this)) {
+                        synchronized (dataStream) {
+                            dataStream.add(doTransaction(dest, amount));
+                        }
+                    } else {
+                        System.out.println(getAccountId() + " Error: Key unrecognized");
+                    }
                 }
+            } catch (InvalidKeySpecException | IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+                e.printStackTrace();
             }
 
             try {
-                sleep(rand.nextInt(15000) + 500);
+                sleep(rand.nextInt(1500) + 250);
             } catch (InterruptedException ignored) {}
         }
     }

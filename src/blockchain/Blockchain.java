@@ -8,7 +8,8 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.LinkedList;
 import java.util.List;
 
-class Block {
+class Block implements Serializable {
+    private static final long serialVersionUID = 1337L;
     private final int minerId;
     private final int id;
     private final long timeStamp;
@@ -28,6 +29,10 @@ class Block {
         if(!data.isEmpty())
             this.data = data;
         this.timeSpent = timeSpent;
+    }
+
+    public void modifyData (List<String> data) {
+        this.data = data;
     }
 
     public String getHash() {
@@ -63,7 +68,8 @@ class Block {
     }
 }
 
-public class Blockchain {
+public class Blockchain implements Serializable {
+    private static final long serialVersionUID = 1337L;
     private int validL;
     private int lastId;
     private final LinkedList<Block> chain;
@@ -115,27 +121,12 @@ public class Blockchain {
         return chain.get(i);
     }
 
-    public Blockchain load(String fileName) throws IOException, ClassNotFoundException {
-        FileInputStream fis = new FileInputStream(fileName);
-        ObjectInputStream ois = new ObjectInputStream(fis);
-        Blockchain loadedChain = (Blockchain) ois.readObject();
-        ois.close();
-        fis.close();
-        return loadedChain;
-
-    }
-
-    public void save(String fileName) throws IOException{
-        FileOutputStream fos = new FileOutputStream(fileName);
-        ObjectOutputStream oos = new ObjectOutputStream(fos);
-        oos.writeObject(this);
-        oos.close();
-        fos.flush();
-        fos.close();
-    }
-
     public boolean validateMessage(List<byte[]> message, Client sender, String s) throws NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, InvalidKeyException, IOException {
         return new VerifyMessage(message, sender.clientName + "PublicKey").getValidation();
+    }
+
+    public boolean validateMessage(List<byte[]> message, AccountClient sender) throws NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, InvalidKeyException, IOException {
+        return new VerifyMessage(message, sender.getAccountId() + "PublicKey").getValidation();
     }
 
     public boolean validateHash(String hash) {
@@ -147,7 +138,7 @@ public class Blockchain {
     }
 
     public boolean isEmpty() {
-        return chain.size() == 0;
+        return chain.isEmpty();
     }
 
     @Override

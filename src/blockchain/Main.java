@@ -1,22 +1,16 @@
 package blockchain;
 
-import java.io.IOException;
+import java.io.*;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class Main {
 
-    private static final List<String> namesList = List.of("Tom", "Sara", "John", "Abel");
-    private static final List<String> shopsList = List.of("ShoesShop", "FastFood", "CarShop", "GamingShop");
-    private static final List<Account> accountsList = new LinkedList<>();
-
-    private static boolean accountContains(String id) {
+    private static boolean accountContains(String id, LinkedList<Account> accountsList) {
         for(Account acc : accountsList) {
             if (acc.getAccountId().equals(id)) {
                 return true;
@@ -25,7 +19,7 @@ public class Main {
         return false;
     }
 
-    private static Account getFromList(String id) {
+    private static Account getFromList(String id, LinkedList<Account> accountsList) {
         for(Account acc : accountsList) {
             if (acc.getAccountId().equals(id)) {
                 return acc;
@@ -34,7 +28,7 @@ public class Main {
         return null;
     }
 
-    private static void minerSim (Blockchain blockchain) throws NoSuchAlgorithmException, IOException {
+    private static void minerSim (Blockchain blockchain, LinkedList<Account> accountsList, List<String> namesList, List<String> shopsList) throws IOException, NoSuchAlgorithmException {
         ExecutorService exec =  Executors.newCachedThreadPool();
 
         List<Miner> minerList = new ArrayList<>();
@@ -46,23 +40,23 @@ public class Main {
             Miner miner = new Miner(blockchain, i + 1, data);
             minerList.add(miner);
 
-            if(!accountContains("miner"+(i+1)))
+            if(!accountContains("miner"+(i+1), accountsList))
                 accountsList.add(new Account("miner"+(i+1)));
-            AccountClient client = new AccountClient(getFromList("miner"+(i+1)), accountsList, data);
+            AccountClient client = new AccountClient(getFromList("miner"+(i+1), accountsList), blockchain, accountsList, data);
             clientList.add(client);
         }
 
         for (String name : namesList) {
-            if(!accountContains(name))
+            if(!accountContains(name, accountsList))
                 accountsList.add(new Account(name));
-            AccountClient client = new AccountClient(getFromList(name), accountsList, data);
+            AccountClient client = new AccountClient(getFromList(name, accountsList), blockchain, accountsList, data);
             clientList.add(client);
         }
 
         for(String shopName : shopsList) {
-            if(!accountContains(shopName))
+            if(!accountContains(shopName, accountsList))
                 accountsList.add(new Account(shopName));
-            AccountClient client = new AccountClient(getFromList(shopName), accountsList, data);
+            AccountClient client = new AccountClient(getFromList(shopName, accountsList), blockchain, accountsList, data);
             clientList.add(client);
         }
 
@@ -77,21 +71,55 @@ public class Main {
         exec.shutdownNow();
 
         assert block != null;
+
         if(blockchain.validateHash(block.getHash())) {
             clientList.forEach(AccountClient::disconnect);
             minerList.forEach(Miner::notifyMod);
-            Objects.requireNonNull(getFromList("miner" + block.getMinerId())).addBalance(100);
+
+            clientList.forEach(x -> {
+                for(String str: x.getDataStream()) {
+                    if (!data.contains(str)) data.add(str);
+                }
+            });
+
+            while (!clientList.isEmpty()) {
+                clientList = clientList.stream().filter(AccountClient::isAlive).collect(Collectors.toList());
+                clientList.forEach(AccountClient::interrupt);
+            }
+
+            if(!data.isEmpty())
+                block.modifyData(data);
+
+            Objects.requireNonNull(getFromList("miner" + block.getMinerId(), accountsList)).addBalance(100);
             blockchain.pushBlock(block);
+
+            SerialUtils.serialize(blockchain, "Blockchain.txt");
+            SerialUtils.serialize(accountsList, "AccountsList.txt");
         }
     }
 
-    public static void main(String[] args) throws  IOException, NoSuchAlgorithmException{
+    public static void main(String[] args) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
 
         Blockchain blockchain = new Blockchain();
+        LinkedList<Account> accountsList = new LinkedList<>();
 
-        for(int i = 0; i < 5; i++) {
-            minerSim(blockchain);
+        final List<String> namesList = List.of("Tom", "Sara", "John", "Abel");
+        final List<String> shopsList = List.of("ShoesShop", "FastFood", "CarShop", "GamingShop");
+
+        final String fileName = "Blockchain.txt";
+        if(new File(fileName).exists()) {
+            blockchain = (Blockchain) SerialUtils.deserialize(fileName);
         }
 
+        final String accountFile = "AccountsList.txt";
+        if(new File(accountFile).exists()) {
+            accountsList = (LinkedList<Account>) SerialUtils.deserialize(accountFile);
+        }
+
+        for(int i = 0; i < 5; i++) {
+            minerSim(blockchain, accountsList, namesList, shopsList);
+            accountsList.forEach(x -> System.out.println(x.getAccountId() + ": " + x.getBalance()));
+            System.out.println();
+        }
     }
 }

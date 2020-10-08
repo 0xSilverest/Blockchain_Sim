@@ -1,6 +1,9 @@
 package blockchain;
 
-public class Account {
+import java.io.Serializable;
+
+public class Account implements Serializable {
+    private static final long serialVersionUID = 123L;
     private final String accountId;
     private long balance = 0;
 
